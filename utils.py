@@ -63,6 +63,29 @@ def _process_node_for_latex(node):
             node.replace_with(f"${content}$")
 
 
+def _clean_caption_html(caption_text: str) -> str:
+    """
+    Apply the same HTML-to-LaTeX conversion logic to a caption string.
+    Handles: <sup>, <sub>, <em>, <i>, <b>, <strong> tags.
+    """
+    if not caption_text or not isinstance(caption_text, str):
+        return caption_text
+    
+    # Parse the caption text as HTML
+    caption_soup = BeautifulSoup(caption_text, 'html.parser')
+    
+    # Apply the same conversion logic
+    _process_node_for_latex(caption_soup)
+    
+    # Extract the cleaned text
+    cleaned_text = caption_soup.get_text()
+    
+    # Replace newlines with spaces
+    cleaned_text = cleaned_text.replace("\n", " ")
+    
+    return cleaned_text
+
+
 def html_to_otsl_enhanced_latex(html: Optional[str] = None, html_path: Optional[str] = None) -> List[str]:
     """
     Use Docling to export tables to OTSL, but first:
@@ -223,7 +246,9 @@ def html_to_otsl_enhanced_latex(html: Optional[str] = None, html_path: Optional[
             caption_text, caption_at_top = table_captions[idx]
             
             if caption_text and '<caption>' not in otsl_content:
-                caption_text = caption_text.replace("\n", " ")
+                # Apply HTML-to-LaTeX conversion and cleanup to caption
+                caption_text = _clean_caption_html(caption_text)
+
                 caption_tag = f"<caption>{caption_text}</caption>"
                 if caption_at_top:
                     enhanced_results.append(f"<otsl>{caption_tag}{otsl_content}</otsl>")
